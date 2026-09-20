@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spectra-lab · 可审计光谱基线与峰拟合</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <h1>spectra-lab</h1>
+  <div class="meta">
+    <button id="load-synthetic">载入固定种子合成曲线</button>
+    <label class="filebtn">上传两列 CSV<input id="file" type="file" accept=".csv,text/csv"></label>
+    <span id="dataset-info" class="dim"></span>
+  </div>
+  <div class="meta">
+    <label>显示横轴单位
+      <select id="disp-unit">
+        <option value="nm">波长 nm</option>
+        <option value="cm^-1">波数 cm⁻¹</option>
+        <option value="ev">能量 eV</option>
+      </select>
+    </label>
+    <span class="dim">所有方案/区间/峰位始终以原始单位保存；切换单位只改变显示与换算。</span>
+  </div>
+</header>
+
+<div id="diag" class="diag hidden"></div>
+
+<main>
+  <section class="chartpanel">
+    <div class="toolbar">
+      <span class="toolgroup">
+        工具：
+        <button data-tool="pan" class="tool active">平移</button>
+        <button data-tool="baseline" class="tool">圈定基线区间</button>
+        <button data-tool="mask" class="tool">屏蔽宇宙射线点</button>
+        <button data-tool="peak" class="tool">放置峰候选</button>
+      </span>
+      <span class="toolgroup">
+        峰型：
+        <select id="peak-kind">
+          <option value="gauss">Gauss</option>
+          <option value="lorentz">Lorentz</option>
+          <option value="voigt">Voigt</option>
+        </select>
+        <label>初宽 <input id="peak-width" type="number" value="8" step="0.5" min="0.0001"></label>
+        <label><input id="fix-center" type="checkbox"> 锁定峰位</label>
+      </span>
+      <span class="toolgroup">
+        <label>平滑 σ(原始单位) <input id="smooth" type="number" value="0" min="0" step="0.1"></label>
+        <label>基线次数 <input id="baseline-degree" type="number" value="1" min="0" max="6" step="1"></label>
+      </span>
+    </div>
+    <canvas id="chart" width="1100" height="460"></canvas>
+    <div class="toolbar">
+      <label><input type="checkbox" id="show-raw" checked> 原始数据</label>
+      <label><input type="checkbox" id="show-baseline" checked> 基线</label>
+      <label><input type="checkbox" id="show-corrected"> 去基线后</label>
+      <label><input type="checkbox" id="show-smoothed" checked> 平滑曲线</label>
+      <label><input type="checkbox" id="show-fit" checked> 拟合模型</label>
+      <label><input type="checkbox" id="show-resid" checked> 残差(下方)</label>
+      <span class="dim">基线区间端点/排除点/峰候选均为可编辑列表；改任何初值都会生成新方案，不覆盖旧方案。</span>
+    </div>
+  </section>
+
+  <aside class="side">
+    <details open>
+      <summary>基线区间（拖动圈选，可删）</summary>
+      <ul id="window-list" class="edlist"></ul>
+    </details>
+    <details open>
+      <summary>排除点 / 宇宙射线</summary>
+      <ul id="mask-list" class="edlist"></ul>
+    </details>
+    <details open>
+      <summary>峰候选</summary>
+      <ul id="peak-list" class="edlist"></ul>
+    </details>
+    <div class="actions">
+      <button id="run-fit" class="primary">拟合（新建方案）</button>
+      <button id="auto-fit">自动候选</button>
+    </div>
+    <p id="fit-status" class="dim"></p>
+  </aside>
+</main>
+
+<section id="results" class="hidden">
+  <div class="resultgrid">
+    <div>
+      <h2>拟合质量</h2>
+      <table id="metrics"></table>
+    </div>
+    <div>
+      <h2>峰参数与 95% 面积置信区间</h2>
+      <table id="peaks"></table>
+    </div>
+    <div>
+      <h2>参数相关性</h2>
+      <div id="corr" class="matrix"></div>
+    </div>
+  </div>
+</section>
+
+<section id="schemes-panel">
+  <h2>方案（不可变记录）</h2>
+  <p class="dim">
+    指纹 = SHA-256(输入哈希 · 初值/约束 · 模型/拟合器/方案版本)。同指纹直接重放；
+    调整初值或锁定峰位会创建新方案，旧参数、排除点和基线范围保持可重放。
+    自动候选不会取代已确认方案。
+  </p>
+  <table id="schemes">
+    <thead><tr><th>#</th><th>来源</th><th>峰</th><th>状态</th><th>指纹</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<footer class="dim">
+  <span id="versions"></span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
